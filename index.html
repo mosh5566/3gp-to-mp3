@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ממיר 3GP ל-MP3</title>
+  <meta name="description" content="המרת קבצי 3GP/3GPP/AMR ל-MP3 בדפדפן, ללא העלאה לשרת">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6366f1">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🎵 ממיר 3GP ל-MP3</h1>
+    <div class="status" id="status">
+      <span class="status-dot loading"></span>
+      <span class="status-text">טוען מנוע המרה...</span>
+    </div>
+  </header>
+
+  <main>
+    <label for="fileInput" class="dropzone" id="dropzone">
+      <div class="dropzone-icon">📁</div>
+      <div class="dropzone-title">לחץ כאן להוספת קבצים</div>
+      <div class="dropzone-hint">או גרור לכאן · ניתן להעלות מספר קבצים</div>
+      <input type="file" id="fileInput" multiple accept="audio/*,video/3gpp,.3gp,.3gpp,.amr" hidden>
+    </label>
+
+    <div class="files-list" id="filesList"></div>
+
+    <div class="actions" id="actions" hidden>
+      <button id="convertAllBtn" class="primary-btn">🔄 המר הכל</button>
+      <button id="downloadAllBtn" class="secondary-btn" hidden>⬇️ הורד הכל</button>
+      <button id="clearBtn" class="ghost-btn">🗑️ נקה</button>
+    </div>
+
+    <div class="install-prompt" id="installPrompt" hidden>
+      <div class="install-text">📲 התקן את האפליקציה לגישה מהירה ולשיתוף קבצים מהטלפון</div>
+      <button id="installBtn" class="install-btn">התקן</button>
+    </div>
+  </main>
+
+  <footer>
+    <p>🔒 הקבצים נשארים במכשיר שלך · ההמרה מתבצעת בדפדפן</p>
+  </footer>
+
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+  <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
