@@ -12,6 +12,42 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="style.css">
+  <script>
+  /* Cross-Origin Isolation bootstrap: register the SW that injects COOP/COEP headers,
+     then reload once so the page loads through the SW and SharedArrayBuffer works. */
+  (function () {
+    if (!('serviceWorker' in navigator)) return;
+    if (window.crossOriginIsolated) return;
+
+    const reloadedFlag = sessionStorage.getItem('coiReloaded');
+
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      // Tell SW to use credentialless mode (works for cross-origin scripts like unpkg)
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'coepCredentialless', value: true });
+      }
+      reg.addEventListener('updatefound', function () {
+        if (!reloadedFlag) {
+          sessionStorage.setItem('coiReloaded', 'updatedSW');
+          window.location.reload();
+        }
+      });
+      if (reg.active && !navigator.serviceWorker.controller && !reloadedFlag) {
+        sessionStorage.setItem('coiReloaded', 'notControlling');
+        window.location.reload();
+      }
+    }).catch(function (err) { console.warn('SW register failed:', err); });
+
+    navigator.serviceWorker.addEventListener('message', function (event) {
+      if (event.data && event.data.type === 'sw-activated' && !window.crossOriginIsolated && !reloadedFlag) {
+        sessionStorage.setItem('coiReloaded', 'swActivated');
+        window.location.reload();
+      }
+    });
+
+    if (reloadedFlag) sessionStorage.removeItem('coiReloaded');
+  })();
+  </script>
 </head>
 <body>
   <header>
