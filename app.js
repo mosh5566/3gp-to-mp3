@@ -185,9 +185,10 @@ async function convertFile(item) {
     await ffmpeg.run(
       '-i', inputName,
       '-vn',
+      '-ac', '1',
+      '-af', 'aresample=44100',
       '-codec:a', 'libmp3lame',
       '-b:a', '192k',
-      '-ar', '44100',
       outputName
     );
     const data = ffmpeg.FS('readFile', outputName);
