@@ -1,5 +1,5 @@
-/* Service Worker - Web Share Target handler */
-const CACHE = 'mp3-converter-v1';
+/* Service Worker - Web Share Target + light caching */
+const CACHE = 'mp3-converter-v2';
 const ASSETS = ['./', './index.html', './style.css', './app.js', './manifest.json',
   './icons/icon-192.png', './icons/icon-512.png'];
 
@@ -14,7 +14,11 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', (event) => {
@@ -39,17 +43,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for app shell (GET only)
+  // Network-first for own HTML/JS so updates roll out fast; cache fallback for offline
   if (req.method === 'GET' && url.origin === location.origin) {
-    event.respondWith(
-      caches.match(req).then(cached => cached || fetch(req).then(res => {
-        if (res.ok) {
-          const clone = res.clone();
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(req);
+        if (fresh && fresh.ok) {
+          const clone = fresh.clone();
           caches.open(CACHE).then(c => c.put(req, clone));
         }
-        return res;
-      }).catch(() => cached))
-    );
+        return fresh;
+      } catch {
+        const cached = await caches.match(req);
+        if (cached) return cached;
+        throw new Error('offline and not cached');
+      }
+    })());
   }
 });
 

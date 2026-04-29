@@ -1,8 +1,10 @@
-/* ממיר 3GP ל-MP3 - לוגיקה ראשית */
-const { FFmpeg } = FFmpegWASM;
-const { fetchFile, toBlobURL } = FFmpegUtil;
+/* ממיר 3GP ל-MP3 - לוגיקה ראשית (FFmpeg.wasm v0.11) */
+const { createFFmpeg, fetchFile } = FFmpeg;
 
-const ffmpeg = new FFmpeg();
+const ffmpeg = createFFmpeg({
+  log: false,
+  corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+});
 let ffmpegReady = false;
 
 const $ = (id) => document.getElementById(id);
@@ -28,25 +30,21 @@ function setStatus(state, text) {
   statusText.textContent = text;
 }
 
+ffmpeg.setProgress(({ ratio }) => {
+  if (currentItem && ratio >= 0 && ratio <= 1) {
+    updateProgress(currentItem, Math.round(ratio * 100));
+  }
+});
+
 async function loadFFmpeg() {
   try {
-    setStatus('loading', 'טוען מנוע המרה (~30MB, חד פעמי)...');
-    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-    await ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-    });
-    ffmpeg.on('progress', ({ progress }) => {
-      if (currentItem) {
-        const pct = Math.min(100, Math.max(0, Math.round(progress * 100)));
-        updateProgress(currentItem, pct);
-      }
-    });
+    setStatus('loading', 'טוען מנוע המרה (~25MB, חד פעמי)...');
+    await ffmpeg.load();
     ffmpegReady = true;
     setStatus('ready', '✅ מוכן להמרה');
   } catch (e) {
-    console.error(e);
-    setStatus('error', '❌ שגיאה בטעינת המנוע. רענן את הדף.');
+    console.error('FFmpeg load failed:', e);
+    setStatus('error', '❌ שגיאה בטעינת המנוע: ' + (e.message || 'לא ידוע'));
   }
 }
 
@@ -183,21 +181,21 @@ async function convertFile(item) {
     const ext = (item.file.name.match(/\.([^.]+)$/) || [])[1] || '3gp';
     const inputName = `input-${item.id}.${ext}`;
     const outputName = `output-${item.id}.mp3`;
-    await ffmpeg.writeFile(inputName, await fetchFile(item.file));
-    await ffmpeg.exec([
+    ffmpeg.FS('writeFile', inputName, await fetchFile(item.file));
+    await ffmpeg.run(
       '-i', inputName,
       '-vn',
       '-codec:a', 'libmp3lame',
       '-b:a', '192k',
       '-ar', '44100',
-      outputName,
-    ]);
-    const data = await ffmpeg.readFile(outputName);
+      outputName
+    );
+    const data = ffmpeg.FS('readFile', outputName);
     item.blob = new Blob([data.buffer], { type: 'audio/mpeg' });
     item.url = URL.createObjectURL(item.blob);
     item.status = 'done';
-    try { await ffmpeg.deleteFile(inputName); } catch {}
-    try { await ffmpeg.deleteFile(outputName); } catch {}
+    try { ffmpeg.FS('unlink', inputName); } catch {}
+    try { ffmpeg.FS('unlink', outputName); } catch {}
   } catch (e) {
     console.error('Conversion failed:', e);
     item.status = 'error';
